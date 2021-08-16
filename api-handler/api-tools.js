@@ -3,6 +3,9 @@ const API_ID = '85bca05f-22ac-4e35-959c-51f5d8ae7c5b';
 const Hypixel = require('hypixel-api-reborn');
 const hypixel = new Hypixel.Client(API_ID);
 
+var admin = require("firebase-admin");
+
+var serviceAccount = require("../firebase-priv.json");
 
 let BazaarData = new Map();
 let BazaarItemsList = [];
@@ -18,11 +21,11 @@ module.exports = {
 
     },
 
-    getAuctionData: async function () {
+    getAuctionData: function () {
         return AHData;
     },
 
-    getMinPrice: async function (itemName, averageOver = 1) {
+    getMinPrice: async function (itemName, averageOver = 1, exact = false, rarity = undefined) {
 
         let bzItems = await module.exports.getBazaarRoster(); 
 
@@ -37,7 +40,7 @@ module.exports = {
         let validAuctions = [];
 
         AHData.auctions.forEach((auction) => {
-            if (auction.bin && auction.bids.length == 0 && auction.item.toLowerCase() == itemName.toLowerCase()) {
+            if (auction.bin && auction.bids.length == 0 && (true ? auction.item.toLowerCase() == itemName.toLowerCase() : auction.item.toLowerCase().includes(itemName.toLowerCase())) && (rarity ? rarity == auction.rarity : true)) {
                 validAuctions.push(auction);
             }
         });
@@ -122,6 +125,24 @@ module.exports = {
 
         //Create slow infinite loop to just make sure that the data is up to date. Can't do an await like with BZ cause this takes like 20s to finish the API call lol
         setTimeout(module.exports.initAuctionData, 10000);
+    },
+
+    initFirebase: async function () {
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            databaseURL: "https://bazaar-bot-default-rtdb.firebaseio.com"
+        });
+    },
+
+    testAddThing: async () => {
+        let obj = {
+            discord_id: 1,
+            discord_username: "test",
+            val_id: 2,
+            fn_id: 3,
+        };
+
+        const res = await admin.firestore().collection('BazaarPriceHistory').doc("temp").set(obj);
     }
 }
 

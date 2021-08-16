@@ -106,7 +106,9 @@ module.exports = {
         channel.send({ embeds: [embed] });
     },
 
-    registerRecipe(recipe, output) {
+    registerRecipe(recipe, output, exact = false) {
+        let tag = output.split(" ")[0];
+        let rarity = output.split(" ")[1];
         let recipeSplit = recipe.split(' ');
         let shoppingList = [];
 
@@ -114,9 +116,11 @@ module.exports = {
             shoppingList.push([recipeSplit[i], parseInt(recipeSplit[i + 1])]);
         }
 
-        CraftingRegistry[output] = {
+        CraftingRegistry[tag] = {
             input: shoppingList,
-            output: output
+            output: tag,
+            rarity: rarity,
+            exact: exact
         };
     },
 

@@ -2,6 +2,9 @@
 const HypixelAPIHandler = require('../api-handler/api-tools');
 const Helpers = require('../helper-functions/helpers');
 
+let fs = require('fs');
+
+
 module.exports = {
 
     help (message) {
@@ -363,10 +366,10 @@ module.exports = {
 			let recipe = recipes[i];
 			let craftPrice = 0;
 			for (let b in recipe.input) {
-				craftPrice += await HypixelAPIHandler.getMinPrice(recipe.input[b][0], 3) * recipe.input[b][1];
+				craftPrice += await HypixelAPIHandler.getMinPrice(recipe.input[b][0], averageOver = 3) * recipe.input[b][1];
 			}
 
-			let sellPrice = await HypixelAPIHandler.getMinPrice(recipe.output);
+			let sellPrice = await HypixelAPIHandler.getMinPrice(recipe.output, averageOver = 1, exact = recipe.exact, rarity = recipe.rarity);
 			priceData.push([i, craftPrice, sellPrice]);
 		}
 
@@ -415,14 +418,15 @@ module.exports = {
 		}
 
 		recipeText = recipeText.substring(0, recipeText.length - 1);
-		replyEmbed.addField("Pricing:", "Crafting: `$" + Helpers.cleanRound(craftPrice, 1).toLocaleString() + "`\nAuction House: `$" + Helpers.cleanRound(await HypixelAPIHandler.getMinPrice(recipe.output), 1).toLocaleString() + "`");
+		replyEmbed.addField("Pricing:", "Crafting: `$" + Helpers.cleanRound(craftPrice, 1).toLocaleString() + "`\nAuction House: `$" + Helpers.cleanRound(await HypixelAPIHandler.getMinPrice(recipe.output, averageOver = 1, exact = recipe.exact, rarity = recipe.rarity), 1).toLocaleString() + "`");
 		replyEmbed.addField("Recipe:", recipeText);
 
 		message.channel.send({ embeds: [replyEmbed] });
     },
 
 	async devTest(message) {
-		console.log(await HypixelAPIHandler.getMinPrice(message.content.substring(5))); 
+		//HypixelAPIHandler.testAddThing();
+
     }
 
 

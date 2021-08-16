@@ -1,5 +1,7 @@
 ﻿const BOT_TOKEN = 'ODc0MTg2Mjg0NDYwMDQwMjA0.YRDTaw.3G0QmVlv8CxQPeV7_8snicuI8_w';
 
+
+
 const { Client, Intents } = require('discord.js');
 
 const Helpers = require('./helper-functions/helpers');
@@ -61,7 +63,7 @@ client.once('ready', async (message) => {
 	Helpers.registerCommand("ah", "Looks for items that are currently selling far lower than they usually do [HAVEN'T MAKE YET RELAX]", (message) => { message.channel.send("not done yet go away"); });
 	Helpers.registerSubCommand("ah", "craft", "Finds items that are profitable to craft and resell on the Auction House.", CommandFunctionality.findAHCraftingFlips);
 
-	Helpers.registerRecipe("EXP_SHARE_CORE 1 ENCHANTED_GOLD 72", "EXP_SHARE");
+	Helpers.registerRecipe("EXP_SHARE_CORE 1 ENCHANTED_GOLD 72", "EXP_SHARE", exact = true);
 	Helpers.registerRecipe("ENCHANTED_LAPIS_LAZULI_BLOCK 9", "EXPERIENCE_ARTIFACT");
 	Helpers.registerRecipe("LUCKY_CLOVER_CORE 1 ENCHANTED_EMERALD 256", "LUCKY_CLOVER");
 	Helpers.registerRecipe("ENCHANTED_EYE_OF_ENDER 32 NULL_OVOID 32 ENCHANTED_STRING 192 ENCHANTED_QUARTZ_BLOCK 32", "JUJU_SHORTBOW");
@@ -81,6 +83,7 @@ client.once('ready', async (message) => {
 	Helpers.registerRecipe("WITHER_LEGGINGS 1 L.A.S.R.'S_EYE 8", "STORM'S_LEGGINGS");
 	Helpers.registerRecipe("WITHER_BOOTS 1 L.A.S.R.'S_EYE 8", "STORM'S_BOOTS");
 	Helpers.registerRecipe("NULL_OVOID 32 ENCHANTED_EYE_OF_ENDER 32 ENCHANTED_DIAMOND 1", "ASPECT_OF_THE_VOID");
+	Helpers.registerRecipe("GRIFFIN_FEATHER 44 ANCIENT_CLAW 376", "BEASTMASTER_CREST RARE");
 
 	/**
 	 * PRINT ITEMS NECESSARY FOR A SPECIFIC AH CRAFTING FLIP
@@ -102,6 +105,7 @@ client.once('ready', async (message) => {
 
 
 	HypixelAPIHandler.initAuctionData();
+	HypixelAPIHandler.initFirebase();
 
 	console.log("Bot Online!");
 
