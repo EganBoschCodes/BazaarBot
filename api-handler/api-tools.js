@@ -3,10 +3,6 @@ const API_ID = '85bca05f-22ac-4e35-959c-51f5d8ae7c5b';
 const Hypixel = require('hypixel-api-reborn');
 const hypixel = new Hypixel.Client(API_ID);
 
-var admin = require("firebase-admin");
-
-var serviceAccount = require("../firebase-priv.json");
-
 let BazaarData = new Map();
 let BazaarItemsList = [];
 
@@ -127,23 +123,6 @@ module.exports = {
         setTimeout(module.exports.initAuctionData, 10000);
     },
 
-    initFirebase: async function () {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: "https://bazaar-bot-default-rtdb.firebaseio.com"
-        });
-    },
-
-    testAddThing: async () => {
-        let obj = {
-            discord_id: 1,
-            discord_username: "test",
-            val_id: 2,
-            fn_id: 3,
-        };
-
-        const res = await admin.firestore().collection('BazaarPriceHistory').doc("temp").set(obj);
-    }
 }
 
 

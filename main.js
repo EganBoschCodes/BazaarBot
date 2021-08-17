@@ -42,9 +42,6 @@ client.once('ready', async (message) => {
 	 * GET/SET FOR MINIMUM VOLUME AND PRICE FOR BZ COMMANDS.
 	**/
 
-	Helpers.setVariable("minBZVolume", 700000);
-	Helpers.setVariable("minBZPrice", 1000);
-
 	Helpers.registerSubCommand("bz", "minvolume", "This changes the minimum instant buy/sell volume acceptable.", CommandFunctionality.editBZMinVolume);
 	Helpers.registerSubCommand("bz", "minprice", "This changes the minimum price per unit acceptable.", CommandFunctionality.editBZMinPrice);
 
@@ -54,7 +51,7 @@ client.once('ready', async (message) => {
 	 * SEARCH PRICE DATA FOR SPECIFIC ITEM
 	**/
 
-	Helpers.registerCommand("price", "Prints the price of any specific item on the Bazaar or the Auction House.", CommandFunctionality.fetchBZItemPrice);
+	Helpers.registerCommand("price", "Prints the price of any specific item on the Bazaar or the Auction House.", CommandFunctionality.fetchItemPrice);
 
 	/**
 	 * SEARCH FOR VALUABLE AUCTION HOUSE FLIPS
@@ -62,6 +59,7 @@ client.once('ready', async (message) => {
 
 	Helpers.registerCommand("ah", "Looks for items that are currently selling far lower than they usually do [HAVEN'T MAKE YET RELAX]", (message) => { message.channel.send("not done yet go away"); });
 	Helpers.registerSubCommand("ah", "craft", "Finds items that are profitable to craft and resell on the Auction House.", CommandFunctionality.findAHCraftingFlips);
+
 
 	Helpers.registerRecipe("EXP_SHARE_CORE 1 ENCHANTED_GOLD 72", "EXP_SHARE", exact = true);
 	Helpers.registerRecipe("ENCHANTED_LAPIS_LAZULI_BLOCK 9", "EXPERIENCE_ARTIFACT");
@@ -101,13 +99,10 @@ client.once('ready', async (message) => {
 	 * AUCTION HOUSE SETTINGS COMMAND
 	**/
 
-
-	Helpers.setVariable("ahSortMode", 0);
-	Helpers.setVariable("ahRangeMin", 0);
-	Helpers.setVariable("ahRangeMax", 1000000000);
-
 	Helpers.registerSubCommand("ah", "switchsortmode", "Changes the sorting mode between percent and direct profit.", CommandFunctionality.switchSortMode);
 	Helpers.registerSubCommand("ah", "setpricerange", "Makes !ah commands only return trades within a specified budget.", CommandFunctionality.setBudget);
+
+	Helpers.registerSubCommand("ah", "settings", "Lists the current !ah related settings.", CommandFunctionality.printAHSettings);
 
 	/**
 	 * PRINT ITEMS NECESSARY FOR A SPECIFIC AH CRAFTING FLIP
@@ -129,14 +124,20 @@ client.once('ready', async (message) => {
 
 
 	HypixelAPIHandler.initAuctionData();
-	HypixelAPIHandler.initFirebase();
+	Helpers.initFirebase();
 
 	console.log("Bot Online!");
 
 });
 
 client.on('messageCreate', async (message) => {
+
 	if (message.content.startsWith("!") && message.channel.name == "bot-commands") {
+		if (!Helpers.getSettings(message.author.id)) {
+			await Helpers.initSettings(message.author.id);
+			Helpers.saveSettings(message.author.id);
+		}
+
 		let commands = Helpers.getCommands();
 		let content = message.content.toLowerCase();
 

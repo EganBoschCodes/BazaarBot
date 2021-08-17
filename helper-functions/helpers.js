@@ -1,7 +1,12 @@
 const { MessageEmbed } = require('discord.js');
 
+var admin = require("firebase-admin");
+var serviceAccount = require("../firebase-priv.json");
+
 let CommandRegistry = {};
 let VariableRegistry = new Map();
+
+let SettingsRegistry = {};
 
 let CraftingRegistry = {};
 
@@ -48,17 +53,6 @@ module.exports = {
 
     nameToTag(name) {
         return name.toUpperCase().replaceAll(' ', '_');
-    },
-
-    setVariable (key, val) {
-        VariableRegistry.set(key, val);
-    },
-
-    getVariable (key) {
-        if (VariableRegistry.has(key)) {
-            return VariableRegistry.get(key);
-        }
-        return false;
     },
 
     getEmbed() {
@@ -126,7 +120,58 @@ module.exports = {
 
     getRecipes() {
         return CraftingRegistry;
-    }
+    },
+
+    async initSettings(username) {
+
+        //DEFAULT SETTINGS
+        SettingsRegistry[username] = {
+            minBZVolume: 700000,
+            minBZPrice: 1000,
+            ahSortMode: 0,
+            ahRangeMin: 0,
+            ahRangeMax: 1000000000
+        }
+
+        const usersRef = admin.firestore().collection('UserSettings').doc(username);
+
+        let userdata = await usersRef.get();
+
+        if (userdata.exists) {
+            let data = userdata.data();
+            for (let i in data) {
+                SettingsRegistry[username][i] = data[i];
+            }
+        }
+
+        module.exports.saveSettings(username);
+
+    },
+
+    setVariable(id, key, val) {
+        SettingsRegistry[id][key] = val;
+        module.exports.saveSettings(id);
+    },
+
+    getVariable(id, key) {
+        console.log(id + " " + key);
+        return SettingsRegistry[id][key];
+    },
+
+    initFirebase: async function () {
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            databaseURL: "https://bazaar-bot-default-rtdb.firebaseio.com"
+        });
+    },
+
+    getSettings(username) {
+        return SettingsRegistry[username];
+    },
+
+    saveSettings: async (username) => {
+        await admin.firestore().collection('UserSettings').doc(username).set(module.exports.getSettings(username));
+    },
 }
 
 function Command(trigger, description, callback) {
