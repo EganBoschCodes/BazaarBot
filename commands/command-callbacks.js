@@ -4,19 +4,40 @@ const Helpers = require('../helper-functions/helpers');
 
 module.exports = {
 
-    help (message) {
-		var replyEmbed = Helpers.getEmbed().setTitle("**Help Registry**");
-
-		let commands = Helpers.getCommands();
-		for (let i in commands) {
-			let descString = commands[i].getDescription();
-			for (let b in commands[i].subCommands) {
-				descString += "\n... **" + commands[i].subCommands[b].getTitle().toLowerCase() + ":** " + commands[i].subCommands[b].getDescription();
-			}
-			replyEmbed.addField("**" + commands[i].getTitle() + "**", descString);
+	help(message) {
+		let commandSplit = message.content.split(" ");
+		if (commandSplit.length > 1 && commandSplit[1][0] == '!') {
+			commandSplit[1] = commandSplit[1].substring(1);
 		}
+		let commands = Helpers.getCommands();
 
-		message.channel.send({ embeds: [replyEmbed] });
+		if (commandSplit.length > 1) {
+			if (commands[commandSplit[1]]) {
+				let command = commands[commandSplit[1]];
+				var replyEmbed = Helpers.getEmbed().setTitle("**Help Registry: " + command.getTitle() + "**");
+				replyEmbed.setDescription(command.getDescription());
+				for (let i in command.subCommands) {
+					replyEmbed.addField("**" + command.subCommands[i].getTrigger() + "**:", command.subCommands[i].getDescription());
+				}
+				message.channel.send({ embeds: [replyEmbed] });
+			}
+			else {
+				Helpers.throwError(message.channel, "No Such Command", "Sorry, but `" + commandSplit[1] + "` isn't a command, and as such we have no help to give other than recommend just `!help` to see all commands!");
+            }
+		}
+		else {
+			var replyEmbed = Helpers.getEmbed().setTitle("**Help Registry**");
+			for (let i in commands) {
+				let descString = commands[i].getDescription();
+				for (let b in commands[i].subCommands) {
+					descString += "\n... **" + commands[i].subCommands[b].getTitle().toLowerCase() + ":** " + commands[i].subCommands[b].getDescription();
+				}
+				replyEmbed.addField("**" + commands[i].getTitle() + "**:", descString);
+			}
+
+			message.channel.send({ embeds: [replyEmbed] });
+        }
+		
 	},
 
 	async directBazaarTradeList(message) {
