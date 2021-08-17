@@ -69,7 +69,7 @@ module.exports = {
     },
 
     sbNumberFormat(input) {
-
+        if (!input) { return -1;}
         input = input.replaceAll(',', '');
 
         let parsed = parseFloat(input, 10);

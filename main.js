@@ -42,11 +42,11 @@ client.once('ready', async (message) => {
 	 * GET/SET FOR MINIMUM VOLUME AND PRICE FOR BZ COMMANDS.
 	**/
 
-	Helpers.setVariable("minVolume", 700000);
-	Helpers.setVariable("minPrice", 1000);
+	Helpers.setVariable("minBZVolume", 700000);
+	Helpers.setVariable("minBZPrice", 1000);
 
-	Helpers.registerSubCommand("bz", "minvolume", "This changes the minimum instant buy/sell volume acceptable.", CommandFunctionality.editMinVolume);
-	Helpers.registerSubCommand("bz", "minprice", "This changes the minimum price per unit acceptable.", CommandFunctionality.editMinPrice);
+	Helpers.registerSubCommand("bz", "minvolume", "This changes the minimum instant buy/sell volume acceptable.", CommandFunctionality.editBZMinVolume);
+	Helpers.registerSubCommand("bz", "minprice", "This changes the minimum price per unit acceptable.", CommandFunctionality.editBZMinPrice);
 
 	Helpers.registerSubCommand("bz", "settings", "Lists the bz command's settings and their values.", CommandFunctionality.listBZSettings);
 
@@ -84,6 +84,30 @@ client.once('ready', async (message) => {
 	Helpers.registerRecipe("WITHER_BOOTS 1 L.A.S.R.'S_EYE 8", "STORM'S_BOOTS");
 	Helpers.registerRecipe("NULL_OVOID 32 ENCHANTED_EYE_OF_ENDER 32 ENCHANTED_DIAMOND 1", "ASPECT_OF_THE_VOID");
 	Helpers.registerRecipe("GRIFFIN_FEATHER 44 ANCIENT_CLAW 376", "BEASTMASTER_CREST RARE");
+	Helpers.registerRecipe("ENCHANTED_BIRCH_WOOD 48 NULL_OVOID 13 SUMMONING_EYE 1", "SOUL_ESOWARD");
+	Helpers.registerRecipe("ENCHANTED_BLAZE_ROD 30 ENCHANTED_EYE_OF_ENDER 30 NULL_OVOID 96", "GYROKINETIC_WAND");
+	Helpers.registerRecipe("ENCHANTED_IRON 128 TARANTULA_SILK 3", "TARANTULA_HELMET");
+	Helpers.registerRecipe("REVIVED_HEART 1 REVENANT_CATALYST 1 UNDEAD_CATALYST 1 CRYSTALIZED_HEART 1 UNDEAD_SWORD 1", "REAPER_FALCION");
+	Helpers.registerRecipe("UNDEAD_CATALYST 1 CRYSTALIZED_HEART 1 UNDEAD_SWORD 1", "REVENANT_FALCION");
+	Helpers.registerRecipe("TARANTULA_SILK 36 ENCHANTED_ACACIA_WOOD 128", "SCORPION_FOIL");
+	Helpers.registerRecipe("ENCHANTED_LAPIS_LAZULI_BLOCK 4 GOLDEN_TOOTH 32 RADIANT_POWER_ORB 1", "MANA_FLUX");
+	Helpers.registerRecipe("ENCHANTED_REDSTONE_BLOCK 24 GOLDEN_TOOTH 128 OVERFLUX_CAPACITOR 1 MANA_FLUX_POWER_ORB 1", "OVERFLUX_POWER_ORB");
+	Helpers.registerRecipe("ENCHANTED_REDSTONE 128 NULL_OVOID 3", "FINAL_DESTINATION_HELMET");
+	Helpers.registerRecipe("ENCHANTED_REDSTONE 256 NULL_OVOID 4", "FINAL_DESTINATION_CHESTPLATE");
+	Helpers.registerRecipe("ENCHANTED_REDSTONE 256 NULL_OVOID 3", "FINAL_DESTINATION_LEGGINGS");
+	Helpers.registerRecipe("ENCHANTED_REDSTONE 128 NULL_OVOID 2", "FINAL_DESTINATION_BOOTS");
+
+	/**
+	 * AUCTION HOUSE SETTINGS COMMAND
+	**/
+
+
+	Helpers.setVariable("ahSortMode", 0);
+	Helpers.setVariable("ahRangeMin", 0);
+	Helpers.setVariable("ahRangeMax", 1000000000);
+
+	Helpers.registerSubCommand("ah", "switchsortmode", "Changes the sorting mode between percent and direct profit.", CommandFunctionality.switchSortMode);
+	Helpers.registerSubCommand("ah", "setpricerange", "Makes !ah commands only return trades within a specified budget.", CommandFunctionality.setBudget);
 
 	/**
 	 * PRINT ITEMS NECESSARY FOR A SPECIFIC AH CRAFTING FLIP

@@ -1,8 +1,5 @@
-﻿const { MessageEmbed } = require('discord.js');
-const HypixelAPIHandler = require('../api-handler/api-tools');
+﻿const HypixelAPIHandler = require('../api-handler/api-tools');
 const Helpers = require('../helper-functions/helpers');
-
-let fs = require('fs');
 
 
 module.exports = {
@@ -36,7 +33,7 @@ module.exports = {
 				let sellPrice = itemData.sellSummary[0].pricePerUnit;
 				let buyPrice = itemData.buySummary[0].pricePerUnit;
 
-				if (itemData.status.sellMovingWeek > Helpers.getVariable("minVolume") && itemData.status.buyMovingWeek > Helpers.getVariable("minVolume") && sellPrice > Helpers.getVariable("minPrice")) {
+				if (itemData.status.sellMovingWeek > Helpers.getVariable("minBZVolume") && itemData.status.buyMovingWeek > Helpers.getVariable("minBZVolume") && sellPrice > Helpers.getVariable("minPrice")) {
 
 					let niceName = Helpers.tagToName(itemData.productId);
 
@@ -131,7 +128,7 @@ module.exports = {
 	},
 
 
-	editMinVolume(message) {
+	editBZMinVolume(message) {
 		let commandSplit = message.content.split(" ");
 
 		var replyEmbed = Helpers.getEmbed()
@@ -145,17 +142,17 @@ module.exports = {
 			}
 			else {
 				replyEmbed.addField("New Minimum Volume Set:", "`$" + parsed.toLocaleString() + "`");
-				Helpers.setVariable("minVolume", parsed);
+				Helpers.setVariable("minBZVolume", parsed);
 			}
 		}
 		else {
-			replyEmbed.addField("Type in a value after `minvolume` to change the value!", "Current Value: `$" + Helpers.getVariable("minVolume").toLocaleString() + "`");
+			replyEmbed.addField("Type in a value after `minvolume` to change the value!", "Current Value: `$" + Helpers.getVariable("minBZVolume").toLocaleString() + "`");
 		}
 
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
-	editMinPrice(message) {
+	editBZPrice(message) {
 		let commandSplit = message.content.split(" ");
 
 		var replyEmbed = Helpers.getEmbed()
@@ -189,7 +186,7 @@ module.exports = {
 			if (bzMap.has("ENCHANTED_" + bzItems[i]) && !blackList.includes(bzItems[i])) {
 				let itemData = await HypixelAPIHandler.getItemData(bzItems[i]);
 				let enchItemData = await HypixelAPIHandler.getItemData("ENCHANTED_" + bzItems[i]);
-				if (itemData.status.sellMovingWeek > Helpers.getVariable("minVolume") && enchItemData.status.buyMovingWeek > Helpers.getVariable("minVolume")) {
+				if (itemData.status.sellMovingWeek > Helpers.getVariable("minBZVolume") && enchItemData.status.buyMovingWeek > Helpers.getVariable("minBZVolume")) {
 					enchantedPairs.push([bzItems[i], "ENCHANTED_" + bzItems[i], 160]);
 				}
 			}
@@ -225,8 +222,8 @@ module.exports = {
 	listBZSettings(message) {
 		let replyEmbed = Helpers.getEmbed().setTitle("Bazaar Settings").setThumbnail('https://render.namemc.com/skin/3d/body.png?skin=f7e2e8b6d2f5fa95&model=classic&theta=39&phi=31&time=90&width=200&height=200');
 
-		replyEmbed.addField("**minVolume**: `" + Helpers.getVariable("minVolume").toLocaleString() + " units per week`", "This setting definines the minimum weekly insta-buys/sells a market needs to even be analyzed for any flip.");
-		replyEmbed.addField("**minPrice**: `$" + Helpers.getVariable("minPrice").toLocaleString() + "`", "This setting definines the minimum cost per item a market needs to be considered for direct flips.");
+		replyEmbed.addField("**minVolume**: `" + Helpers.getVariable("minBZVolume").toLocaleString() + " units per week`", "This setting definines the minimum weekly insta-buys/sells a market needs to even be analyzed for any flip.");
+		replyEmbed.addField("**minPrice**: `$" + Helpers.getVariable("minBZPrice").toLocaleString() + "`", "This setting definines the minimum cost per item a market needs to be considered for direct flips.");
 
 		message.channel.send({ embeds: [replyEmbed] });
 	},
@@ -368,24 +365,28 @@ module.exports = {
 			for (let b in recipe.input) {
 				craftPrice += await HypixelAPIHandler.getMinPrice(recipe.input[b][0], averageOver = 3) * recipe.input[b][1];
 			}
-
-			let sellPrice = await HypixelAPIHandler.getMinPrice(recipe.output, averageOver = 1, exact = recipe.exact, rarity = recipe.rarity);
-			priceData.push([i, craftPrice, sellPrice]);
+			if (craftPrice > Helpers.getVariable("ahRangeMin") && craftPrice < Helpers.getVariable("ahRangeMax")) {
+				let sellPrice = await HypixelAPIHandler.getMinPrice(recipe.output, averageOver = 1, exact = recipe.exact, rarity = recipe.rarity);
+				priceData.push([i, craftPrice, sellPrice]);
+			}
 		}
+		let sortMode = Helpers.getVariable("ahSortMode");
 
-		priceData.sort((a, b) => { return (b[2] * 0.98 - b[1]) / b[1] - (a[2] * 0.98 - a[1]) / a[1]; });
+		priceData.sort((a, b) => { return (b[2] * 0.98 - b[1]) / (sortMode ? 1 : b[1]) - (a[2] * 0.98 - a[1]) / (sortMode ? 1 : a[1]); });
 
 		let replyEmbed = Helpers.getEmbed().setTitle("Auction Crafting Flips").setThumbnail("https://static.wikia.nocookie.net/hypixel-skyblock/images/a/a8/Auction_Master.png/revision/latest/scale-to-width-down/249?cb=20210812151239");
 
-		for (let i = 0; i < 8; i++) {
+		for (let i = 0; i < Math.min(8, priceData.length); i++) {
 			let flip = recipes[priceData[i][0]];
 			let profit = priceData[i][2] * 0.98 - priceData[i][1];
-			let profitPercent = profit / priceData[i][1] * 100;
+			if (profit > 0) {
+				let profitPercent = profit / priceData[i][1] * 100;
 
-			let title = "Flip #" + (i + 1) + ": `" + Helpers.tagToName(flip.output) + "`";
-			let bodyText = "Money Turnover: `$" + Helpers.cleanRound(priceData[i][1], 1).toLocaleString() + " → $" + Helpers.cleanRound(priceData[i][2], 1).toLocaleString() + "`\n";
-			bodyText += "Profit After Fees: `$" + Helpers.cleanRound(profit, 1).toLocaleString() + " (" + Helpers.cleanRound(profitPercent, 2) + "% profit)`";
-			replyEmbed.addField(title, bodyText);
+				let title = "Flip #" + (i + 1) + ": `" + Helpers.tagToName(flip.output) + (flip.rarity ? " (" + Helpers.niceCapitalize(flip.rarity) + ")" : "") + "`";
+				let bodyText = "Money Turnover: `$" + Helpers.cleanRound(priceData[i][1], 1).toLocaleString() + " → $" + Helpers.cleanRound(priceData[i][2], 1).toLocaleString() + "`\n";
+				bodyText += "Profit After Fees: `$" + Helpers.cleanRound(profit, 1).toLocaleString() + " (" + Helpers.cleanRound(profitPercent, 2) + "% profit)`";
+				replyEmbed.addField(title, bodyText);
+            }
         }
 
 		message.channel.send({ embeds: [replyEmbed] });
@@ -422,11 +423,43 @@ module.exports = {
 		replyEmbed.addField("Recipe:", recipeText);
 
 		message.channel.send({ embeds: [replyEmbed] });
+	},
+
+	switchSortMode(message) {
+		Helpers.setVariable("ahSortMode", 1 - Helpers.getVariable("ahSortMode"));
+		let modes = ["Percentage", "Direct"];
+		let replyEmbed = Helpers.getEmbed().setTitle("Auction Sort Mode Changed").setThumbnail("https://static.wikia.nocookie.net/hypixel-skyblock/images/a/a8/Auction_Master.png/revision/latest/scale-to-width-down/249?cb=20210812151239");
+		replyEmbed.setDescription("Sorting Mode switched from `" + modes[1 - Helpers.getVariable("ahSortMode")] + "` to `" + modes[Helpers.getVariable("ahSortMode")] + "`.");
+		message.channel.send({ embeds: [replyEmbed] });
+	},
+
+	setBudget(message) {
+		let input = message.content.split(" ");
+		let firstNum = Helpers.sbNumberFormat(input[2]);
+		let secondNum = Helpers.sbNumberFormat(input[3]);
+
+		if (firstNum < 0) {
+			Helpers.throwError(message.channel, "No Valid Input Given!", "Sorry, this command is either used as `!ah setpricerange [minprice]` or as `!ah setpricerange [minprice] [maxprice]`!");
+		}
+		else if (secondNum < 0) {
+			let replyEmbed = Helpers.getEmbed().setTitle("Auction Price Range Changed").setThumbnail("https://static.wikia.nocookie.net/hypixel-skyblock/images/a/a8/Auction_Master.png/revision/latest/scale-to-width-down/249?cb=20210812151239");
+			replyEmbed.setDescription("Range Minimum switched from `$" + Helpers.cleanRound(Helpers.getVariable("ahRangeMin"), 1).toLocaleString() + "` to `$" + Helpers.cleanRound(firstNum, 1).toLocaleString() + "`.");
+			Helpers.setVariable("ahRangeMin", firstNum);
+			message.channel.send({ embeds: [replyEmbed] });
+		}
+		else {
+			let replyEmbed = Helpers.getEmbed().setTitle("Auction Price Range Changed").setThumbnail("https://static.wikia.nocookie.net/hypixel-skyblock/images/a/a8/Auction_Master.png/revision/latest/scale-to-width-down/249?cb=20210812151239");
+
+			replyEmbed.setDescription("Price Range switched from `$" + Helpers.cleanRound(Helpers.getVariable("ahRangeMin"), 1).toLocaleString() + " - $" + Helpers.cleanRound(Helpers.getVariable("ahRangeMax"), 1).toLocaleString() + "` to `$" + Helpers.cleanRound(firstNum, 1).toLocaleString() + " - $" + Helpers.cleanRound(secondNum, 1).toLocaleString()+"`.");
+			Helpers.setVariable("ahRangeMin", firstNum);
+			Helpers.setVariable("ahRangeMax", secondNum);
+			message.channel.send({ embeds: [replyEmbed] });
+        }
     },
 
 	async devTest(message) {
 		//HypixelAPIHandler.testAddThing();
-
+		console.log(await HypixelAPIHandler.getMinPrice("Beastmaster Crest", 1, false, "RARE"));
     }
 
 

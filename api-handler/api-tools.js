@@ -32,7 +32,7 @@ module.exports = {
         let tag = itemName.replaceAll(' ', '_').toUpperCase();
 
         if (BazaarItemsList.indexOf(tag) >= 0) {
-            return module.exports.getItemBuyPrice(tag);
+            return module.exports.getItemSellPrice(tag);
         }
 
         itemName = itemName.replaceAll('_', ' ');
@@ -40,7 +40,7 @@ module.exports = {
         let validAuctions = [];
 
         AHData.auctions.forEach((auction) => {
-            if (auction.bin && auction.bids.length == 0 && (true ? auction.item.toLowerCase() == itemName.toLowerCase() : auction.item.toLowerCase().includes(itemName.toLowerCase())) && (rarity ? rarity == auction.rarity : true)) {
+            if (auction.bin && auction.bids.length == 0 && (exact ? auction.item.toLowerCase() == itemName.toLowerCase() : auction.item.toLowerCase().includes(itemName.toLowerCase())) && (rarity ? rarity == auction.rarity : true)) {
                 validAuctions.push(auction);
             }
         });
