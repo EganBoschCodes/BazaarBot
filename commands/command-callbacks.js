@@ -42,15 +42,14 @@ module.exports = {
 
 	async directBazaarTradeList(message) {
 
-		let bzItems = await HypixelAPIHandler.getBazaarRoster();
-		let bzMap = await HypixelAPIHandler.getBazaarMap();
+		let bzData = await HypixelAPIHandler.getBazaarData();
 
 		let validTrades = [];
 
 		let settings = Helpers.getSettings(message.author.id);
 
-		for (let i in bzItems) {
-			let itemData = bzMap.get(bzItems[i]);
+		for (let i in bzData) {
+			let itemData = bzData[i];
 
 			if (itemData.sellSummary.length > 0 && itemData.buySummary.length > 0) {
 				let sellPrice = itemData.sellSummary[0].pricePerUnit;
@@ -204,19 +203,19 @@ module.exports = {
 	},
 
 	async craftingBazaarTradeList(message) {
-		let bzItems = await HypixelAPIHandler.getBazaarRoster();
-		let bzMap = await HypixelAPIHandler.getBazaarMap();
+		let bzData = await HypixelAPIHandler.getBazaarData();
 
 		let settings = Helpers.getSettings(message.author.id);
 
 		var enchantedPairs = [];
 		var blackList = ["LEATHER", "STRING", "HARD_STONE", "BLAZE_ROD", "PACKED_ICE", "CACTUS", "SUGAR_CANE", "RABBIT_HIDE", "BLAZE_POWDER", "HUGE_MUSHROOM_1", "HUGE_MUSHROOM_2"];
-		for (let i in bzItems) {
-			if (bzMap.has("ENCHANTED_" + bzItems[i]) && !blackList.includes(bzItems[i])) {
-				let itemData = await HypixelAPIHandler.getItemData(bzItems[i]);
-				let enchItemData = await HypixelAPIHandler.getItemData("ENCHANTED_" + bzItems[i]);
+		for (let i in bzData) {
+			if (bzData["ENCHANTED_" + i] && !blackList.includes(i)) {
+
+				let itemData = bzData[i];
+				let enchItemData = await HypixelAPIHandler.getItemData("ENCHANTED_" + i);
 				if (itemData.status.sellMovingWeek > settings.minBZVolume && enchItemData.status.buyMovingWeek > settings.minBZVolume) {
-					enchantedPairs.push([bzItems[i], "ENCHANTED_" + bzItems[i], 160]);
+					enchantedPairs.push([i, "ENCHANTED_" + i, 160]);
 				}
 			}
 		}
@@ -267,7 +266,7 @@ module.exports = {
 		let rarities = ['c', 'u', 'r', 'e', 'l', 'm', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
 
 		if (itemID.length > 0) {
-			if ((await HypixelAPIHandler.getBazaarMap()).has(itemID) && !rarities.includes(idSplit[idSplit.length-1].toLowerCase())) {
+			if ((await HypixelAPIHandler.getBazaarData())[itemID] && !rarities.includes(idSplit[idSplit.length-1].toLowerCase())) {
 				let itemData = await HypixelAPIHandler.getItemData(itemID);
 				let itemBuy = await HypixelAPIHandler.getItemBuyPrice(itemID);
 				let itemSell = await HypixelAPIHandler.getItemSellPrice(itemID);
@@ -355,10 +354,15 @@ module.exports = {
             }
 
 			else {
-				let allBZItems = await HypixelAPIHandler.getBazaarRoster();
+				let allBZItems = await HypixelAPIHandler.getBazaarData();
 				let allItems = allBZItems;
 				let matchingItems = [];
-				allItems.forEach((a) => { if (a.includes(itemID)) { matchingItems.push(a); } });
+
+				for (let i in allItems) {
+					if (i.includes(itemID)) {
+						matchingItems.push(i);
+                    }
+                }
 
 				if (matchingItems.length == 0) {
 					Helpers.throwError(message.channel, "No Item Found", "Sorry, but your search doesn't match anything in the Bazaar or the Auction House.");
@@ -463,7 +467,7 @@ module.exports = {
 		Helpers.setVariable(message.author.id, "ahSortMode", 1 - settings.ahSortMode);
 		let modes = ["Percentage", "Direct"];
 		let replyEmbed = Helpers.getEmbed().setTitle("Auction Sort Mode Changed").setThumbnail("https://static.wikia.nocookie.net/hypixel-skyblock/images/a/a8/Auction_Master.png/revision/latest/scale-to-width-down/249?cb=20210812151239");
-		replyEmbed.setDescription("Sorting Mode switched from `" + modes[settings.ahSortMode] + "` to `" + modes[1 - settings.ahSortMode] + "`.");
+		replyEmbed.setDescription("Sorting Mode switched from `" + modes[1 - settings.ahSortMode] + "` to `" + modes[settings.ahSortMode] + "`.");
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
@@ -503,11 +507,80 @@ module.exports = {
 		replyEmbed.addField("Sorting Mode:", "Mode: `" + modes[settings.ahSortMode] + "`");
 		replyEmbed.addField("Price Range:", "Minimum: `$" + Helpers.cleanRound(settings.ahRangeMin, 1).toLocaleString() + "`\nMaximum : `$" + Helpers.cleanRound(settings.ahRangeMax, 1).toLocaleString() + "`");
 		message.channel.send({ embeds: [replyEmbed] });
+	},
+
+	async findAHSnipes(message) {
+		let settings = Helpers.getSettings(message.author.id);
+		let AHData = await HypixelAPIHandler.getAuctionData();
+
+		let endingSoon = [];
+
+		for (let i = 0; i < AHData.auctions.length; i++) {
+			let auction = AHData.auctions[i];
+
+			if (!auction.bin && (auction.auctionEndTimestamp - Date.now() < 6 * 60 * 1000) && (auction.auctionEndTimestamp - Date.now() > 60 * 1000) && auction.item != "Enchanted Book") {
+				let binPrice = await HypixelAPIHandler.getMinPrice(auction.item);
+				let ahPrice = Math.max(auction.highestBid, auction.startingBid);
+
+				if ((ahPrice < binPrice * 0.6 || binPrice - ahPrice > 500000 + binPrice * 0.02) && binPrice > settings.ahRangeMin && ahPrice < settings.ahRangeMax) {
+					endingSoon.push([auction, ahPrice, binPrice * 0.98]);
+                }
+            }
+		}
+
+		endingSoon.sort((a, b) => {
+			return (a[2] - a[1]) - (b[2] - b[1]);
+		});
+
+		let replyEmbed = Helpers.getEmbed().setTitle("Snipable Auctions").setThumbnail("https://static.wikia.nocookie.net/hypixel-skyblock/images/a/a8/Auction_Master.png/revision/latest/scale-to-width-down/249?cb=20210812151239");
+
+		for (let i = 0; i < Math.min(6, endingSoon.length); i++) {
+			let auction = endingSoon[i][0];
+			let binPrice = endingSoon[i][2];
+			let ahPrice = endingSoon[i][1];
+			let profit = Helpers.cleanRound(binPrice - ahPrice, 1).toLocaleString()
+			let profitPercentage = Helpers.cleanRound((binPrice - ahPrice) / ahPrice * 100, 2).toLocaleString();
+
+			let titleText = "Item " + (i + 1) + ": `" + auction.item + "`";
+			let bodyText = "Money Turnover: `$" + Helpers.cleanRound(ahPrice, 1).toLocaleString() + "` → `$" + Helpers.cleanRound(binPrice, 1).toLocaleString() + "`\nProfit After Fees: `$" + profit + " (" + profitPercentage + ")`";
+			replyEmbed.addField(titleText, bodyText);
+		}
+
+		message.channel.send({ embeds: [replyEmbed] });
     },
 
 	async devTest(message) {
-		console.log(Helpers.getSettings(message.author.id));
+		try {
+			//Helpers.updateBZData10Min();
+			let graphURL = await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5));
+
+			let replyEmbed = Helpers.getEmbed().setTitle("Testing").setImage(graphURL);
+			message.channel.send({ embeds: [replyEmbed] });
+			console.log(await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5)));
+		}
+		catch (e) {
+			console.log(e);
+        }
     }
 
+}
 
+let averageObjs = (objArr) => {
+	let retObj = {};
+	for (let i in objArr[0]) {
+		if (typeof objArr[0][i] == 'number') {
+			retObj[i] = 0;
+			for (let b in objArr) {
+				retObj[i] += objArr[b][i] / objArr.length;
+			}
+		}
+		else if (objArr[0][i] instanceof Object || objArr[0][i] instanceof Array) {
+			let subObjArr = [];
+			for (let b in objArr) {
+				subObjArr.push(objArr[b][i]);
+			}
+			retObj[i] = averageObjs(subObjArr);
+        }
+	}
+	return retObj;
 }

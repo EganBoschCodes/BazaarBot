@@ -1,20 +1,17 @@
-const API_ID = '85bca05f-22ac-4e35-959c-51f5d8ae7c5b';
+﻿const API_ID = '85bca05f-22ac-4e35-959c-51f5d8ae7c5b';
 
 const Hypixel = require('hypixel-api-reborn');
 const hypixel = new Hypixel.Client(API_ID);
 
-let BazaarData = new Map();
-let BazaarItemsList = [];
+let BazaarData = {};
 
 let AHData = {auctions:[]};
 
 module.exports = {
     getBazaarData: async function () {
+        await populateBazaarData();
 
-        return hypixel.getSkyblockBazaar().then(products => {
-            return products;
-        }).catch(console.log);
-
+        return BazaarData;
     },
 
     getAuctionData: function () {
@@ -23,11 +20,26 @@ module.exports = {
 
     getMinPrice: async function (itemName, averageOver = 1, exact = false, rarity = undefined) {
 
-        let bzItems = await module.exports.getBazaarRoster(); 
+        let reforges = ["GENTLE", "ODD", "FAST", "FAIR", "EPIC", "SHARP", "HEROIC", "SPICY", "LEGENDARY", "DIRTY", "GILDED", "WARPED", "BULKY", "SALTY", "TREACHEROUS", "STIFF", "LUCKY", "DEADLY", "FINE", "GRAND", "HASTY", "NEAT", "RAPID", "UNREAL", "AWKWARD", "RICH", "PRECISE", "HEADSTRONG", "CLEAN", "FIERCE", "HEAVY", "LIGHT", "MYTHIC", "PURE", "SMART", "TITANIC", "WISE", "PERFECT", "SPIKED", "RENOWNED", "CUBIC", "WARPED", "REINFORCED", "LOVING", "RIDICULOUS", "SUBMERGED", "JADED", "BIZARRE", "ITCHY", "OMINOUS", "PLEASANT", "PRETTY", "SHINY", "SIMPLE", "STRANGE", "VIVID", "GODLY", "DEMONIC", "FORCEFUL", "HURTFUL", "KEEN", "STRONG", "SUPERIOR", "UNPLEASANT", "ZEALOUS", "SILKY", "BLOODY", "SHADED", "SWEET", "FRUITFUL", "MAGNETIC", "REFINED", "BLESSED", "FLEET", "STELLAR", "MITHRAIC", "AUSPICIOUS", "HEATED", "AMBERED"];
+
+        await populateBazaarData();
 
         let tag = itemName.replaceAll(' ', '_').toUpperCase();
+        let tagSplit = tag.split('_');
 
-        if (BazaarItemsList.indexOf(tag) >= 0) {
+        if (reforges.indexOf(tagSplit[0]) >= 0) {
+            tagSplit.shift();
+        }
+
+        if (tagSplit[tagSplit.length - 1].includes("✪")) {
+            tagSplit.pop();
+        }
+
+        tag = tagSplit.join('_');
+
+        itemName = tag.toLowerCase().replace("_", " ");
+
+        if (BazaarData[tag]) {
             return module.exports.getItemSellPrice(tag);
         }
 
@@ -52,34 +64,22 @@ module.exports = {
         return validAuctions.length ? price : -1;
     },
 
-    getBazaarMap: async function () {
-        await populateBazaarData();
-
-        return BazaarData;
-    },
-
-    getBazaarRoster: async function () {
-        await populateBazaarData();
-
-        return BazaarItemsList;
-    },
-
     getItemBuyPrice: async function (key) {
         await populateBazaarData();
 
-        return parseFloat(BazaarData.get(key).buySummary[0].pricePerUnit);
+        return parseFloat(BazaarData[key].buySummary[0].pricePerUnit);
     },
 
     getItemSellPrice: async function (key) {
         await populateBazaarData();
 
-        return parseFloat(BazaarData.get(key).sellSummary[0].pricePerUnit);
+        return parseFloat(BazaarData[key].sellSummary[0].pricePerUnit);
     },
 
     getItemData: async function(tag) {
         await populateBazaarData();
 
-        return BazaarData.get(tag);
+        return BazaarData[tag];
     },
 
     getGeneralPlayer: async function (username) {
@@ -121,7 +121,7 @@ module.exports = {
 
         //Create slow infinite loop to just make sure that the data is up to date. Can't do an await like with BZ cause this takes like 20s to finish the API call lol
         setTimeout(module.exports.initAuctionData, 10000);
-    },
+    }
 
 }
 
@@ -132,12 +132,10 @@ async function populateBazaarData() {
         //console.log("Repopulating Bazaar Data...");
         let bzData = await hypixel.getSkyblockBazaar().then(products => { return products; }).catch(console.log);
 
-        BazaarData.clear();
-        BazaarItemsList = [];
+        BazaarData = {};
 
         for (let i in bzData) {
-            BazaarData.set(bzData[i].productId, bzData[i]);
-            BazaarItemsList.push(bzData[i].productId);
+            BazaarData[bzData[i].productId] = bzData[i];
         }
 
         lastUpdatedBZ = Date.now();

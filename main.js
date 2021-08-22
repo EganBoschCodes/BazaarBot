@@ -5,7 +5,7 @@
 const { Client, Intents } = require('discord.js');
 
 const Helpers = require('./helper-functions/helpers');
-const CommandFunctionality = require('./commands/command-callbacks')
+const CommandFunctionality = require('./commands/command-callbacks');
 const HypixelAPIHandler = require('./api-handler/api-tools');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
@@ -94,6 +94,10 @@ client.once('ready', async (message) => {
 	Helpers.registerRecipe("ENCHANTED_REDSTONE 256 NULL_OVOID 4", "FINAL_DESTINATION_CHESTPLATE");
 	Helpers.registerRecipe("ENCHANTED_REDSTONE 256 NULL_OVOID 3", "FINAL_DESTINATION_LEGGINGS");
 	Helpers.registerRecipe("ENCHANTED_REDSTONE 128 NULL_OVOID 2", "FINAL_DESTINATION_BOOTS");
+	Helpers.registerRecipe("ENCHANTED_ROTTEN_FLESH 256", "ZOMBIE'S_HEART");
+	Helpers.registerRecipe("ENCHANTED_ROTTEN_FLESH 256 ENCHANTED_DIAMOND 256", "CRYSTALLIZED_HEART");
+	Helpers.registerRecipe("ENCHANTED_LAPIS_LAZULI_BLOCK 9 SPIRIT_WING 3", "SPIRIT_SCEPTRE");
+	Helpers.registerRecipe("CHALLENGING_ROD 1 ENCHANTED_WATER_LILY 136", "ROD_OF_LEGENDS");
 
 	/**
 	 * AUCTION HOUSE SETTINGS COMMAND
@@ -111,10 +115,16 @@ client.once('ready', async (message) => {
 	Helpers.registerCommand("recipe", "Lists the items needed to craft the requested item", CommandFunctionality.getRecipe);
 
 	/**
+	 * COMPARE AUCTIONS THAT ARE ABOUT TO FINISH TO THE LOWEST BIN
+	**/
+
+	Helpers.registerSubCommand("ah", "snipe", "Finds auctions ending soon priced way below the lowest BIN.", CommandFunctionality.findAHSnipes);
+
+	/**
 	 * Filler Function to make sure things work
 	**/
 
-	Helpers.registerCommand("dev", "... go away you don't need this.", CommandFunctionality.devTest);
+	//Helpers.registerCommand("dev", "... go away you don't need this.", CommandFunctionality.devTest);
 
 	/**
 	 * YES I'M FUNNY
@@ -125,6 +135,7 @@ client.once('ready', async (message) => {
 
 	HypixelAPIHandler.initAuctionData();
 	Helpers.initFirebase();
+	Helpers.initBazaarUpdate();
 
 	console.log("Bot Online!");
 
