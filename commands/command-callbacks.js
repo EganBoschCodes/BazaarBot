@@ -557,7 +557,9 @@ module.exports = {
 	},
 
 	async awaitPrice(client, message) {
-		let commandSplit = message.content.split(" ");
+		let commandSplit = message.content.split(" ").filter((a) => {
+			return a.length > 0;
+		});
 		let signIndex = Math.max(commandSplit.indexOf(">"), commandSplit.indexOf("<"));
 
 		if (signIndex > 1 && signIndex + 2 == commandSplit.length) {
