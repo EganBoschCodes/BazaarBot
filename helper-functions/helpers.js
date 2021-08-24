@@ -138,9 +138,8 @@ module.exports = {
         let userdata = await FireStore.get("UserSettings", username);
 
         if (userdata) {
-            let data = userdata.data();
-            for (let i in data) {
-                SettingsRegistry[username][i] = data[i];
+            for (let i in userdata) {
+                SettingsRegistry[username][i] = userdata[i];
             }
         }
 
