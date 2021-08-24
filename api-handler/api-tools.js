@@ -3,9 +3,14 @@
 const Hypixel = require('hypixel-api-reborn');
 const hypixel = new Hypixel.Client(API_ID);
 
+const FireStore = require('./firestore');
+
 let BazaarData = {};
 
-let AHData = {auctions:[]};
+let AHData = { auctions: [] };
+
+let AwaitQueue = [];
+let clientRef;
 
 module.exports = {
     getBazaarData: async function () {
@@ -27,8 +32,8 @@ module.exports = {
         let tag = itemName.replaceAll(' ', '_').toUpperCase();
         let tagSplit = tag.split('_');
 
-        if (reforges.indexOf(tagSplit[0]) >= 0) {
-            tagSplit.shift();
+        if (reforges.indexOf(tagSplit[0] == "⚚" ? tagSplit[1] : tagSplit[0]) >= 0) {
+            tagSplit.splice(tagSplit[0] == "⚚" ? 1 : 0, 1);
         }
 
         if (tagSplit[tagSplit.length - 1].includes("✪")) {
@@ -114,13 +119,52 @@ module.exports = {
         return sbprofile && !lastSavedData ? 0 : lastSavedData;
     },
 
-    initAuctionData : async function () {
+    initAuctionData: async (client) => {
+        if (!clientRef) {
+            clientRef = client;
+
+            const Awaits = await FireStore.getCollectionAsObj("AwaitPrice");
+            for (let i in Awaits) {
+                AwaitQueue.push([Awaits[i].user, Awaits[i].name, Awaits[i].sign, Awaits[i].price, Awaits[i].timeStamp]);
+            }
+        }
+
         //console.log("Repopulating Auction Data...");
         AHData = await hypixel.getSkyblockAuctions().then(products => { return products; }).catch(console.log);
         //console.log("Auction Data repopulated.");
 
+        for (let i = 0; i < AwaitQueue.length; i++) {
+            let user = AwaitQueue[i][0];
+            let itemName = AwaitQueue[i][1];
+            let sign = AwaitQueue[i][2];
+            let price = AwaitQueue[i][3];
+
+            let itemPrice = await module.exports.getMinPrice(itemName);
+
+            if (sign == ">" ? (price < itemPrice) : (price > itemPrice)) {
+                try {
+                    clientRef.users.cache.get(user).send("`" + itemName + "` has " + (sign == ">" ? " risen above `$" : " dropped below `$") + price.toLocaleString() + "`!");
+                    FireStore.deleteEntry("AwaitPrice", AwaitQueue[i][4]);
+                    AwaitQueue.splice(i, 1);
+                    i--;
+                    continue;
+                }
+                catch (e) { console.log("User hasn't spoken since restart"); } 
+            }
+
+            if (Date.now() - AwaitQueue[i][4] > 6 * 60 * 60 * 1000) {
+                FireStore.deleteEntry("AwaitPrice", AwaitQueue[i][4]); 
+                AwaitQueue.splice(i, 1);
+                i--;
+            }
+        }
+
         //Create slow infinite loop to just make sure that the data is up to date. Can't do an await like with BZ cause this takes like 20s to finish the API call lol
         setTimeout(module.exports.initAuctionData, 10000);
+    },
+
+    addAwaitInternal: (user, itemName, sign, price, age) => {
+        AwaitQueue.push([user, itemName, sign, price, age]);
     }
 
 }

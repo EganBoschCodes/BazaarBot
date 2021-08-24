@@ -1,9 +1,7 @@
 const { MessageEmbed } = require('discord.js');
 
-var admin = require("firebase-admin");
-var serviceAccount = require("../firebase-priv.json");
-
 const HypixelAPIHandler = require('../api-handler/api-tools');
+const FireStore = require('../api-handler/firestore');
 
 const ChartJSImage = require('chart.js-image');
 
@@ -133,15 +131,13 @@ module.exports = {
             minBZVolume: 700000,
             minBZPrice: 1000,
             ahSortMode: 0,
-            ahRangeMin: 0,
+            ahRangeMin: 500000,
             ahRangeMax: 1000000000
         }
 
-        const usersRef = admin.firestore().collection('UserSettings').doc(username);
+        let userdata = await FireStore.get("UserSettings", username);
 
-        let userdata = await usersRef.get();
-
-        if (userdata.exists) {
+        if (userdata) {
             let data = userdata.data();
             for (let i in data) {
                 SettingsRegistry[username][i] = data[i];
@@ -162,19 +158,12 @@ module.exports = {
         return SettingsRegistry[id][key];
     },
 
-    initFirebase: async function () {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: "https://bazaar-bot-default-rtdb.firebaseio.com"
-        });
-    },
-
     getSettings(username) {
         return SettingsRegistry[username];
     },
 
     saveSettings: async (username) => {
-        await admin.firestore().collection('UserSettings').doc(username).set(module.exports.getSettings(username));
+        await FireStore.set("UserSettings", username, module.exports.getSettings(username));
     },
 
     firebasifyBZData(bzData) {
@@ -183,10 +172,12 @@ module.exports = {
             let attribute = {};
             if (bzData[i].buySummary[0]) {
                 attribute.maxBuyPrice = bzData[i].buySummary[0].pricePerUnit;
-                attribute.maxSellPrice = bzData[i].sellSummary[0].pricePerUnit;
                 attribute.avgBuyPrice = bzData[i].buySummary[0].pricePerUnit;
-                attribute.avgSellPrice = bzData[i].sellSummary[0].pricePerUnit;
                 attribute.minBuyPrice = bzData[i].buySummary[0].pricePerUnit;
+            }
+            if (bzData[i].sellSummary[0]) {
+                attribute.maxSellPrice = bzData[i].sellSummary[0].pricePerUnit;
+                attribute.avgSellPrice = bzData[i].sellSummary[0].pricePerUnit;
                 attribute.minSellPrice = bzData[i].sellSummary[0].pricePerUnit;
             }
             obj[i] = attribute;
@@ -201,16 +192,16 @@ module.exports = {
         let trigger60m = (currentTime % 3600000) < (updateTimer % 3600000);
         updateTimer = currentTime;
         if (trigger10m) {
-            //module.exports.updateBZData10Min();
+            module.exports.updateBZData10Min();
         }
 
-        //setTimeout(module.exports.initBazaarUpdate, 5000);
+        setTimeout(module.exports.initBazaarUpdate, 5000);
     },
 
     async updateBZData10Min() {
         let bzData = await HypixelAPIHandler.getBazaarData();
         let obj = module.exports.firebasifyBZData(bzData);
-        const collectionRef = await admin.firestore().collection("BazaarTenMin");
+        const collectionRef = await FireStore.getCollection("BazaarTenMin");
         await collectionRef.doc("" + Date.now()).set(obj);
         console.log("BAZAAR DATA UPDATED - 10m");
 
@@ -226,8 +217,8 @@ module.exports = {
     },
 
     async updateBZDataHour() {
-        const tenMinRef = await admin.firestore().collection("BazaarTenMin");
-        const hourlyRef = await admin.firestore().collection("BazaarHourly");
+        const tenMinRef = await FireStore.getCollection("BazaarTenMin");
+        const hourlyRef = await FireStore.getCollection("BazaarHourly");
         console.log("BAZAAR DATA UPDATED - 1h");
 
 
@@ -257,14 +248,6 @@ module.exports = {
 
     sleep: (ms) => {
         return new Promise(resolve => setTimeout(resolve, ms));
-    },
-
-    getCollection: async (name) => {
-        return admin.firestore().collection(name);
-    },
-
-    getDB: async () => {
-        return admin.firestore();
     },
 
     averageObjs: (objArr) => {
@@ -358,7 +341,7 @@ module.exports = {
             }
         }
 
-        const collectionRef = await admin.firestore().collection(collectionName);
+        const collectionRef = await FireStore.getCollection(collectionName);
         const datapoints = await collectionRef.orderBy('timeStamp', 'desc').limit(20).get();
         let bzDataArr = [];
         let counter = 0;
@@ -383,6 +366,21 @@ module.exports = {
         const line_chart = ChartJSImage().chart(chartData).backgroundColor('white').width(500).height(300);
         return await line_chart.toURL();
 
+    },
+
+    addAwait: async (user, itemName, sign, price) => {
+        let time = Date.now();
+        let awaitObj = {
+            user: user,
+            name: itemName,
+            sign: sign,
+            price: price,
+            timeStamp: Date.now()
+        }
+
+        FireStore.set("AwaitPrice", time, awaitObj);
+
+        HypixelAPIHandler.addAwaitInternal(user, itemName, sign, price, Date.now());
     }
     
 }

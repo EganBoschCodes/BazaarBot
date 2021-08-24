@@ -2,9 +2,10 @@
 const Helpers = require('../helper-functions/helpers');
 
 
+
 module.exports = {
 
-	help(message) {
+	help(client, message) {
 		let commandSplit = message.content.split(" ");
 		if (commandSplit.length > 1 && commandSplit[1][0] == '!') {
 			commandSplit[1] = commandSplit[1].substring(1);
@@ -22,7 +23,7 @@ module.exports = {
 				message.channel.send({ embeds: [replyEmbed] });
 			}
 			else {
-				Helpers.throwError(message.channel, "No Such Command", "Sorry, but `" + commandSplit[1] + "` isn't a command, and as such we have no help to give other than recommend just `!help` to see all commands!");
+				Helpers.throwError(message.channel, "No Such Command", "Sorry, but `" + commandSplit[1] + "` isn't a command, and as such we have no help to give other than recommend just `$help` to see all commands!");
             }
 		}
 		else {
@@ -40,7 +41,7 @@ module.exports = {
 		
 	},
 
-	async directBazaarTradeList(message) {
+	async directBazaarTradeList(client, message) {
 
 		let bzData = await HypixelAPIHandler.getBazaarData();
 
@@ -85,7 +86,7 @@ module.exports = {
 
 
 
-	async findPlayerData(message) {
+	async findPlayerData(client, message) {
 		var username = message.content.split(' ')[1];
 		var sbprofile = message.content.split(' ')[2];
 
@@ -149,7 +150,7 @@ module.exports = {
 	},
 
 
-	editBZMinVolume(message) {
+	editBZMinVolume(client, message) {
 		let commandSplit = message.content.split(" ");
 
 		let settings = Helpers.getSettings(message.author.id);
@@ -176,7 +177,7 @@ module.exports = {
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
-	editBZMinPrice(message) {
+	editBZMinPrice(client, message) {
 		let commandSplit = message.content.split(" ");
 
 		let settings = Helpers.getSettings(message.author.id);
@@ -202,7 +203,7 @@ module.exports = {
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
-	async craftingBazaarTradeList(message) {
+	async craftingBazaarTradeList(client, message) {
 		let bzData = await HypixelAPIHandler.getBazaarData();
 
 		let settings = Helpers.getSettings(message.author.id);
@@ -247,7 +248,7 @@ module.exports = {
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
-	listBZSettings(message) {
+	listBZSettings(client, message) {
 		let replyEmbed = Helpers.getEmbed().setTitle("Bazaar Settings").setThumbnail('https://render.namemc.com/skin/3d/body.png?skin=f7e2e8b6d2f5fa95&model=classic&theta=39&phi=31&time=90&width=200&height=200');
 
 		let settings = Helpers.getSettings(message.author.id);
@@ -258,7 +259,7 @@ module.exports = {
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
-	async fetchItemPrice(message) {
+	async fetchItemPrice(client, message) {
 
 		let itemID = Helpers.nameToTag(message.content.substring(7));
 		let idSplit = message.content.substring(7).split(" ");
@@ -389,7 +390,7 @@ module.exports = {
 
 	},
 
-	async findAHCraftingFlips(message) {
+	async findAHCraftingFlips(client, message) {
 		let recipes = Helpers.getRecipes();
 
 		let settings = Helpers.getSettings(message.author.id);
@@ -428,7 +429,7 @@ module.exports = {
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
-	async getRecipe(message) {
+	async getRecipe(client, message) {
 		let recipe;
 		let tag = message.content.substring(8).toUpperCase().replaceAll(' ', '_');
 
@@ -461,7 +462,7 @@ module.exports = {
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
-	switchSortMode(message) {
+	switchSortMode(client, message) {
 		let settings = Helpers.getSettings(message.author.id);
 
 		Helpers.setVariable(message.author.id, "ahSortMode", 1 - settings.ahSortMode);
@@ -471,7 +472,7 @@ module.exports = {
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
-	setBudget(message) {
+	setBudget(client, message) {
 		let settings = Helpers.getSettings(message.author.id);
 
 		let input = message.content.split(" ");
@@ -497,7 +498,7 @@ module.exports = {
         }
 	},
 
-	printAHSettings(message) {
+	printAHSettings(client, message) {
 		let settings = Helpers.getSettings(message.author.id);
 
 		let replyEmbed = Helpers.getEmbed().setTitle("Auction Settings").setThumbnail("https://static.wikia.nocookie.net/hypixel-skyblock/images/a/a8/Auction_Master.png/revision/latest/scale-to-width-down/249?cb=20210812151239");
@@ -509,7 +510,7 @@ module.exports = {
 		message.channel.send({ embeds: [replyEmbed] });
 	},
 
-	async findAHSnipes(message) {
+	async findAHSnipes(client, message) {
 		let settings = Helpers.getSettings(message.author.id);
 		let AHData = await HypixelAPIHandler.getAuctionData();
 
@@ -518,7 +519,7 @@ module.exports = {
 		for (let i = 0; i < AHData.auctions.length; i++) {
 			let auction = AHData.auctions[i];
 
-			if (!auction.bin && (auction.auctionEndTimestamp - Date.now() < 6 * 60 * 1000) && (auction.auctionEndTimestamp - Date.now() > 60 * 1000) && auction.item != "Enchanted Book") {
+			if (!auction.bin && (auction.auctionEndTimestamp - Date.now() < 6 * 60 * 1000) && (auction.auctionEndTimestamp - Date.now() > 30 * 1000) && auction.item != "Enchanted Book" && auction.item[0] != "[") {
 				let binPrice = await HypixelAPIHandler.getMinPrice(auction.item);
 				let ahPrice = Math.max(auction.highestBid, auction.startingBid);
 
@@ -529,10 +530,16 @@ module.exports = {
 		}
 
 		endingSoon.sort((a, b) => {
-			return (a[2] - a[1]) - (b[2] - b[1]);
+			return !settings.ahSortMode ? (a[2] - a[1]) - (b[2] - b[1]) : ((a[2] - a[1])/a[1] - (b[2] - b[1])/b[1]);
 		});
 
 		let replyEmbed = Helpers.getEmbed().setTitle("Snipable Auctions").setThumbnail("https://static.wikia.nocookie.net/hypixel-skyblock/images/a/a8/Auction_Master.png/revision/latest/scale-to-width-down/249?cb=20210812151239");
+
+
+
+		if (!endingSoon.length) {
+			replyEmbed.setDescription("Unfortuately there are no profitable auction snipes right now! Try again in a bit.");
+		}
 
 		for (let i = 0; i < Math.min(6, endingSoon.length); i++) {
 			let auction = endingSoon[i][0];
@@ -542,23 +549,53 @@ module.exports = {
 			let profitPercentage = Helpers.cleanRound((binPrice - ahPrice) / ahPrice * 100, 2).toLocaleString();
 
 			let titleText = "Item " + (i + 1) + ": `" + auction.item + "`";
-			let bodyText = "Money Turnover: `$" + Helpers.cleanRound(ahPrice, 1).toLocaleString() + "` → `$" + Helpers.cleanRound(binPrice, 1).toLocaleString() + "`\nProfit After Fees: `$" + profit + " (" + profitPercentage + ")`";
+			let bodyText = "Money Turnover: `$" + Helpers.cleanRound(ahPrice, 1).toLocaleString() + "` → `$" + Helpers.cleanRound(binPrice, 1).toLocaleString() + "`\nProfit After Fees: `$" + profit + " (" + profitPercentage + "%)`\nAuction ID: `"+auction.auctionId+"`";
 			replyEmbed.addField(titleText, bodyText);
 		}
 
 		message.channel.send({ embeds: [replyEmbed] });
+	},
+
+	async awaitPrice(client, message) {
+		let commandSplit = message.content.split(" ");
+		let signIndex = Math.max(commandSplit.indexOf(">"), commandSplit.indexOf("<"));
+
+		if (signIndex > 1 && signIndex + 2 == commandSplit.length) {
+			let itemPrice = Helpers.sbNumberFormat(commandSplit[signIndex + 1]);
+			if (itemPrice > 0) {
+				let nameArray = [];
+				for (let i = 1; i < signIndex; i++) {
+					nameArray.push(commandSplit[i]);
+				}
+				let itemName = Helpers.niceCapitalize(nameArray.join(" "));
+				Helpers.addAwait(message.author.id, itemName, commandSplit[signIndex], itemPrice);
+				let replyEmbed = Helpers.getEmbed().setTitle("Alert Set!").setDescription("We'll notify you when `" + itemName + (commandSplit[signIndex] == ">" ? "` rises above `$" : "` drops below `$") + itemPrice.toLocaleString() + "`!");
+
+				message.channel.send({ embeds: [replyEmbed] });
+				return;
+			}
+			Helpers.throwError(message.channel, "Improper Price", "Sorry, `" + commandSplit[signIndex + 1] + "` is not a valid number!");
+			return;
+		}
+		Helpers.throwError(message.channel, "Improper Format", "Sorry, but the correct format for this command is `$await [item name] [> : <] [price]`!");
     },
 
-	async devTest(message) {
+	async devTest(client, message) {
 		try {
-			//Helpers.updateBZData10Min();
-			let graphURL = await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5));
+			console.log(message.author.id);
+			if (message.author.id == "416738519982276609") {
+				//Helpers.updateBZData10Min();
+				let graphURL = await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5));
 
-			let replyEmbed = Helpers.getEmbed().setTitle("Testing").setImage(graphURL);
-			message.channel.send({ embeds: [replyEmbed] });
-			console.log(await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5)));
+				let replyEmbed = Helpers.getEmbed().setTitle("Testing").setImage(graphURL);
+				message.channel.send({ embeds: [replyEmbed] });
+				console.log(await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5)));
+            }
+
 		}
 		catch (e) {
+			Helpers.throwError(message.channel, "Internal Error", "Sorry, but you managed to break the bot somehow: Bosch has been notified though!");
+			client.users.cache.get("416738519982276609").send("MESSAGE: " + message.content + "\nERROR:\n" + e);
 			console.log(e);
         }
     }

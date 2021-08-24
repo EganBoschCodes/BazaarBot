@@ -7,6 +7,7 @@ const { Client, Intents } = require('discord.js');
 const Helpers = require('./helper-functions/helpers');
 const CommandFunctionality = require('./commands/command-callbacks');
 const HypixelAPIHandler = require('./api-handler/api-tools');
+const FireStore = require('./api-handler/firestore');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
@@ -57,7 +58,7 @@ client.once('ready', async (message) => {
 	 * SEARCH FOR VALUABLE AUCTION HOUSE FLIPS
 	**/
 
-	Helpers.registerCommand("ah", "Looks for items that are currently selling far lower than they usually do [HAVEN'T MAKE YET RELAX]", (message) => { message.channel.send("not done yet go away"); });
+	Helpers.registerCommand("ah", "Looks for items that are currently selling far lower than they usually do [HAVEN'T MAKE YET RELAX]", (client_, message) => { message.channel.send("Not done yet, try other commands!"); });
 	Helpers.registerSubCommand("ah", "craft", "Finds items that are profitable to craft and resell on the Auction House.", CommandFunctionality.findAHCraftingFlips);
 
 
@@ -121,10 +122,16 @@ client.once('ready', async (message) => {
 	Helpers.registerSubCommand("ah", "snipe", "Finds auctions ending soon priced way below the lowest BIN.", CommandFunctionality.findAHSnipes);
 
 	/**
+	 * Await the price of an item on the AH or Bazaar to cross a certain boundary
+	**/
+
+	Helpers.registerCommand("await", "Get alerted when an item's price crosses a given threshold.", CommandFunctionality.awaitPrice);
+
+	/**
 	 * Filler Function to make sure things work
 	**/
 
-	//Helpers.registerCommand("dev", "... go away you don't need this.", CommandFunctionality.devTest);
+	Helpers.registerCommand("dev", "... go away you don't need this.", CommandFunctionality.devTest);
 
 	/**
 	 * YES I'M FUNNY
@@ -133,57 +140,68 @@ client.once('ready', async (message) => {
 	client.user.setActivity("your mom", { type: "STREAMING", url: "https://twitter.com/BoomerBosch" });
 
 
-	HypixelAPIHandler.initAuctionData();
-	Helpers.initFirebase();
+	await FireStore.initFirebase();
+
+	HypixelAPIHandler.initAuctionData(client);
+	//Helpers.initFirebase();
 	Helpers.initBazaarUpdate();
+
+	FireStore.deleteCollection("test");
 
 	console.log("Bot Online!");
 
 });
 
 client.on('messageCreate', async (message) => {
+	try {
+		if (message.content.startsWith("$") && (message.channel.name == "bot-commands" || message.channel.name == "flipper-bot")) {
+			if (!Helpers.getSettings(message.author.id)) {
+				await Helpers.initSettings(message.author.id);
+				Helpers.saveSettings(message.author.id);
+			}
 
-	if (message.content.startsWith("!") && message.channel.name == "bot-commands") {
-		if (!Helpers.getSettings(message.author.id)) {
-			await Helpers.initSettings(message.author.id);
-			Helpers.saveSettings(message.author.id);
-		}
+			let commands = Helpers.getCommands();
+			let content = message.content.toLowerCase();
 
-		let commands = Helpers.getCommands();
-		let content = message.content.toLowerCase();
+			let commandFound = false;
+			for (var i in commands) {
+				if (content == "$" + commands[i].getTrigger()) {
 
-		let commandFound = false;
-		for (var i in commands) {
-			if (content == "!" + commands[i].getTrigger()) {
-
-				commands[i].callback(message);
-				commandFound = true;
-				break;
-
-            }
-			else if (content.startsWith("!" + commands[i].getTrigger() + " ")) {
-
-				let commandSplit = content.split(" ");
-
-				if (commands[i].usesSubCommands) {
-					if (commandSplit[1] in commands[i].subCommands) {
-						Helpers.getSubCommand(commandSplit[0].substring(1), commandSplit[1]).callback(message);
-						commandFound = true;
-						break;
-                    }
-				}
-				else {
-					commands[i].callback(message);
+					commands[i].callback(client, message);
 					commandFound = true;
 					break;
-                }
-            }
+
+				}
+				else if (content.startsWith("$" + commands[i].getTrigger() + " ")) {
+
+					let commandSplit = content.split(" ");
+
+					if (commands[i].usesSubCommands) {
+						if (commandSplit[1] in commands[i].subCommands) {
+							Helpers.getSubCommand(commandSplit[0].substring(1), commandSplit[1]).callback(client, message);
+							commandFound = true;
+							break;
+						}
+					}
+					else {
+						commands[i].callback(client, message);
+						commandFound = true;
+						break;
+					}
+				}
+			}
+
+			if (!commandFound) {
+				Helpers.throwError(message.channel, "Command Not Found", "Sorry, but `" + message.content + "` is not a valid command!\n`$help` for a list of available commands!");
+
+			}
+
 		}
-
-		if (!commandFound) {
-			Helpers.throwError(message.channel, "Command Not Found", "Sorry, but `" + message.content + "` is not a valid command!\n`!help` for a list of available commands!");
-        }
-
+	}
+	catch (e) {
+		Helpers.throwError(message.channel, "Internal Error", "Sorry, but you managed to break the bot somehow: Bosch has been notified though!");
+		client.users.cache.get("416738519982276609").send("MESSAGE: " + message.content + "\nERROR:\n"+e);
+		console.log(e);
     }
 
 });
