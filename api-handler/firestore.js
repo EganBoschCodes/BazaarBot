@@ -26,6 +26,11 @@ module.exports = {
         db.collection(collection).doc(""+doc).set(obj);
     },
 
+    exists: async (collection, doc) => {
+        let dataRef = await db.collection(collection).doc(doc).get();
+        return dataRef.exists;
+    },
+
     getCollectionAsObj: async (collection) => {
         const colRef = await db.collection(collection);
         const snapshot = await colRef.get();

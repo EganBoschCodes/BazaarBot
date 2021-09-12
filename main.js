@@ -105,7 +105,7 @@ client.once('ready', async (message) => {
 	**/
 
 	Helpers.registerSubCommand("ah", "switchsortmode", "Changes the sorting mode between percent and direct profit.", CommandFunctionality.switchSortMode);
-	Helpers.registerSubCommand("ah", "setpricerange", "Makes !ah commands only return trades within a specified budget.", CommandFunctionality.setBudget);
+	Helpers.registerSubCommand("ah", "setpricerange", "Makes $ah commands only return trades within a specified budget.", CommandFunctionality.setBudget);
 
 	Helpers.registerSubCommand("ah", "settings", "Lists the current !ah related settings.", CommandFunctionality.printAHSettings);
 
@@ -128,10 +128,27 @@ client.once('ready', async (message) => {
 	Helpers.registerCommand("await", "Get alerted when an item's price crosses a given threshold.", CommandFunctionality.awaitPrice);
 
 	/**
+	 * Set Internal Server Permissions
+	**/
+
+	Helpers.registerCommand("setperms", "For Bosch's Eyes Only: Change the Permission Level of the Guild", CommandFunctionality.setPerms);
+	Helpers.getCommands()["setperms"].setInvisible();
+
+
+
+	/**
+	 * Name Server in Database
+	**/
+
+	Helpers.registerCommand("name", "For Bosch's Eyes Only: Append Name information to FireStore Perms Object (in case I ever need to delete perms remotely for some reason)", CommandFunctionality.nameServer);
+	Helpers.getCommands()["name"].setInvisible();
+
+	/**
 	 * Filler Function to make sure things work
 	**/
 
 	Helpers.registerCommand("dev", "... go away you don't need this.", CommandFunctionality.devTest);
+	Helpers.getCommands()["dev"].setInvisible();
 
 	/**
 	 * YES I'M FUNNY
@@ -154,7 +171,30 @@ client.once('ready', async (message) => {
 
 client.on('messageCreate', async (message) => {
 	try {
-		if (message.content.startsWith("$") && (message.channel.name == "bot-commands" || message.channel.name == "flipper-bot")) {
+		if (!message.content.startsWith("$")) {
+			return;
+        }
+
+		let guildID = message.guildId;
+		let guildPerms = await FireStore.get("GuildPermissions", guildID);
+
+		if (!guildPerms) {
+			FireStore.set("GuildPermissions", guildID, {
+				birthEpoch: Date.now(),
+				channelPerms: {}
+			});
+			guildPerms = {
+				channelPerms: {}
+			};
+		}
+
+		//Either the channel has been given a permission value, or I am the one sending the message
+		let channelPerms = guildPerms.channelPerms[message.channelId];
+
+		let allowCommand = Helpers.canRunCommand(message.author.id, channelPerms) || (message.author.id == "416738519982276609");
+
+		if (allowCommand) {
+			Helpers.registerMessage(message.author.id);
 			if (!Helpers.getSettings(message.author.id)) {
 				await Helpers.initSettings(message.author.id);
 				Helpers.saveSettings(message.author.id);

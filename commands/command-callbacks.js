@@ -1,6 +1,7 @@
 ﻿const HypixelAPIHandler = require('../api-handler/api-tools');
 const Helpers = require('../helper-functions/helpers');
 
+const FireStore = require('../api-handler/firestore');
 
 
 module.exports = {
@@ -13,7 +14,7 @@ module.exports = {
 		let commands = Helpers.getCommands();
 
 		if (commandSplit.length > 1) {
-			if (commands[commandSplit[1]]) {
+			if (commands[commandSplit[1]] && commands[commandSplit[1]].visible) {
 				let command = commands[commandSplit[1]];
 				var replyEmbed = Helpers.getEmbed().setTitle("**Help Registry: " + command.getTitle() + "**");
 				replyEmbed.setDescription(command.getDescription());
@@ -29,11 +30,14 @@ module.exports = {
 		else {
 			var replyEmbed = Helpers.getEmbed().setTitle("**Help Registry**");
 			for (let i in commands) {
-				let descString = commands[i].getDescription();
-				for (let b in commands[i].subCommands) {
-					descString += "\n... **" + commands[i].subCommands[b].getTitle().toLowerCase() + ":** " + commands[i].subCommands[b].getDescription();
-				}
-				replyEmbed.addField("**" + commands[i].getTitle() + "**:", descString);
+				if (commands[i].visible) {
+					let descString = commands[i].getDescription();
+					for (let b in commands[i].subCommands) {
+						descString += "\n... **" + commands[i].subCommands[b].getTitle().toLowerCase() + ":** " + commands[i].subCommands[b].getDescription();
+					}
+					replyEmbed.addField("**" + commands[i].getTitle() + "**:", descString);
+
+                }
 			}
 
 			message.channel.send({ embeds: [replyEmbed] });
@@ -518,8 +522,8 @@ module.exports = {
 
 		for (let i = 0; i < AHData.auctions.length; i++) {
 			let auction = AHData.auctions[i];
-
-			if (!auction.bin && (auction.auctionEndTimestamp - Date.now() < 6 * 60 * 1000) && (auction.auctionEndTimestamp - Date.now() > 30 * 1000) && auction.item != "Enchanted Book" && auction.item[0] != "[") {
+			let lore = auction.item_lore ? auction.item_lore : "";
+			if (!auction.bin && (auction.auctionEndTimestamp - Date.now() < 6 * 60 * 1000) && (auction.auctionEndTimestamp - Date.now() > 30 * 1000) && auction.item != "Enchanted Book" && auction.item[0] != "[" && lore.substring(11) != "§8Furniture") {
 				let binPrice = await HypixelAPIHandler.getMinPrice(auction.item);
 				let ahPrice = Math.max(auction.highestBid, auction.startingBid);
 
@@ -580,13 +584,51 @@ module.exports = {
 			return;
 		}
 		Helpers.throwError(message.channel, "Improper Format", "Sorry, but the correct format for this command is `$await [item name] [> : <] [price]`!");
-    },
+	},
+
+	async setPerms(client, message) {
+		try {
+			if (message.author.id == "416738519982276609") {
+				let currentObj = await FireStore.get("GuildPermissions", message.guildId);
+				let messageSplit = message.content.split(" ");
+				currentObj.channelPerms[message.channelId] = parseInt(messageSplit[1]);
+				FireStore.set("GuildPermissions", message.guildId, currentObj);
+				//Helpers.updateBZData10Min();
+
+			}
+
+		}
+		catch (e) {
+			Helpers.throwError(message.channel, "Internal Error", "Sorry, but you managed to break the bot somehow: Bosch has been notified though!");
+			client.users.cache.get("416738519982276609").send("MESSAGE: " + message.content + "\nERROR:\n" + e);
+			console.log(e);
+		}
+	},
+
+	async nameServer(client, message) {
+		try {
+			if (message.author.id == "416738519982276609") {
+				let currentObj = await FireStore.get("GuildPermissions", message.guildId);
+				currentObj.name = message.content.substring(message.content.indexOf(" ")+1);
+				FireStore.set("GuildPermissions", message.guildId, currentObj);
+
+				console.log("Successfully named Server " + message.guildId + " to \"" + currentObj.name + "\"");
+			}
+
+		}
+		catch (e) {
+			Helpers.throwError(message.channel, "Internal Error", "Sorry, but you managed to break the bot somehow: Bosch has been notified though!");
+			client.users.cache.get("416738519982276609").send("MESSAGE: " + message.content + "\nERROR:\n" + e);
+			console.log(e);
+		}
+	},
 
 	async devTest(client, message) {
 		try {
 			console.log(message.author.id);
 			if (message.author.id == "416738519982276609") {
 				//Helpers.updateBZData10Min();
+
 				let graphURL = await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5));
 
 				let replyEmbed = Helpers.getEmbed().setTitle("Testing").setImage(graphURL);

@@ -72,13 +72,13 @@ module.exports = {
     getItemBuyPrice: async function (key) {
         await populateBazaarData();
 
-        return parseFloat(BazaarData[key].buySummary[0].pricePerUnit);
+        return parseFloat(BazaarData[key].buySummary[0] ? BazaarData[key].buySummary[0].pricePerUnit : -1);
     },
 
     getItemSellPrice: async function (key) {
         await populateBazaarData();
 
-        return parseFloat(BazaarData[key].sellSummary[0].pricePerUnit);
+        return parseFloat(BazaarData[key].sellSummary[0] ? BazaarData[key].sellSummary[0].pricePerUnit : -1);
     },
 
     getItemData: async function(tag) {

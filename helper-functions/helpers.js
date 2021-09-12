@@ -11,6 +11,8 @@ let CraftingRegistry = {};
 
 let updateTimer = Date.now();
 
+let UserCooldown = {};
+
 module.exports = {
 
     getCommands () {
@@ -380,21 +382,33 @@ module.exports = {
         FireStore.set("AwaitPrice", time, awaitObj);
 
         HypixelAPIHandler.addAwaitInternal(user, itemName, sign, price, Date.now());
+    },
+
+    registerMessage: (userID) => {
+        UserCooldown[userID] = Date.now();
+    },
+
+    canRunCommand: (userID, permissions) => {
+        return permissions == 2 || (permissions == 1 && (!UserCooldown[userID] || (Date.now() - UserCooldown[userID]) > 300000));
     }
     
 }
 
 function Command(trigger, description, callback) { 
     this.callback = callback;
-    this.getTrigger = function () {
+    this.visible = true;
+    this.getTrigger = () => {
         return trigger.toLowerCase();
     };
-    this.getTitle = function () {
+    this.getTitle = () => {
         return module.exports.niceCapitalize(trigger);
     };
-    this.getDescription = function () {
+    this.getDescription = () => {
         return description;
     };
     this.usesSubCommands = false;
     this.subCommands = {};
+    this.setInvisible = () => {
+        this.visible = false;
+    };
 };
