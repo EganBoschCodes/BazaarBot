@@ -629,11 +629,16 @@ module.exports = {
 			if (message.author.id == "416738519982276609") {
 				//Helpers.updateBZData10Min();
 
-				let graphURL = await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5));
+				/*let graphURL = await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5));
 
 				let replyEmbed = Helpers.getEmbed().setTitle("Testing").setImage(graphURL);
 				message.channel.send({ embeds: [replyEmbed] });
-				console.log(await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5)));
+				console.log(await Helpers.getGraphURL("BazaarTenMin", message.content.substring(5)));*/
+
+				/*let userRef = await FireStore.getCollection("UserSettings");
+				userRef.get().then(snap => {
+					console.log(snap.size)
+				});*/
             }
 
 		}

@@ -1,5 +1,9 @@
-﻿const BOT_TOKEN = 'ODc0MTg2Mjg0NDYwMDQwMjA0.YRDTaw.3G0QmVlv8CxQPeV7_8snicuI8_w';
+﻿const dotenv = require('dotenv');
+dotenv.config();
 
+console.log(process.env.BOT_TOKEN);
+
+const BOT_TOKEN = process.env.BOT_TOKEN;
 
 
 const { Client, Intents } = require('discord.js');
